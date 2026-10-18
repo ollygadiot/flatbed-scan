@@ -9,8 +9,8 @@ BLUR=4                  # blur radius before thresholding; hides dust and streak
 BACKGROUND="black"      # "black" (ES-60W feeder backing) or "white" (flatbed lid)
 SHAVE=0                 # pixels shaved off every edge first (kills scanner-edge artefacts)
 PAD=0                   # pixels of white padding added back after trimming
-BLACK_POINT="30%"       # greys this dark or darker become black (driver output never reaches black)
-GAMMA=0.55              # <1 darkens midtones (pencil), 1 = off; paper is already clipped white
+BLACK_POINT="0%"        # greys this dark or darker become black; raise (e.g. 30%) for punchier lines
+GAMMA=0.7               # <1 darkens midtones (pencil), 1 = off; paper is already clipped white
 SOURCE="feeder"         # "feeder" (sheet-fed, e.g. ES-60W) or "flatbed"
 SCANNER=""              # exact scanner name; empty = first one found
 OUT_DIR="$HOME/Scans"

@@ -65,8 +65,8 @@ The ES-60W driver has no brightness, contrast or gamma setting. Through ImageCap
 | `BACKGROUND` | `black` | `black` for the ES-60W backing, `white` for a flatbed lid. A white object on a white lid won't trim; use a dark backing sheet. |
 | `SHAVE` | `0` | Pixels shaved off every edge before trimming (scanner-edge artefacts). |
 | `PAD` | `0` | White padding added back around the result. |
-| `BLACK_POINT` | `30%` | Greys at or below this become black. The driver's output never gets darker than ~13%, and pencil sits at 40–90%. |
-| `GAMMA` | `0.55` | Below 1 darkens midtones such as pencil. `1` turns it off. Set `BLACK_POINT=0%` and `GAMMA=1` for untouched output. |
+| `BLACK_POINT` | `0%` | Greys at or below this become black. The driver's output never gets darker than ~13%, so raise it (e.g. `30%`) for punchier lines. |
+| `GAMMA` | `0.7` | Below 1 darkens midtones such as pencil. `1` turns it off. Set `BLACK_POINT=0%` and `GAMMA=1` for untouched output. |
 | `SOURCE` | `feeder` | `feeder` or `flatbed`. |
 | `SCANNER` | empty | Exact scanner name from `scanline -list`. Empty means the first one found. |
 | `OUT_DIR` | `~/Scans` | Where PNGs land. |
