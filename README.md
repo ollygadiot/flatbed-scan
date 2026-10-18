@@ -42,6 +42,29 @@ On failure it prints the reason, shows a macOS notification, and exits 1.
 3. Open the shortcut's **Details** (ⓘ) and choose **Add Keyboard Shortcut**, e.g. ⌃⌥⌘S.
 4. Run it once from Shortcuts and approve the permission prompts.
 
+### The scanner's own button (ScanButton.app)
+
+`ScanButton/` is a tiny background app that turns the ES-60W's hardware button into a `scan.sh` run.
+
+```bash
+./ScanButton/build.sh     # builds ~/Applications/ScanButton.app, registers it, starts it
+```
+
+To keep it running after a reboot, add `~/Applications/ScanButton.app` under System Settings → General → Login Items. Watch what it's doing with:
+
+```bash
+log stream --predicate 'subsystem == "local.scanbutton"'
+```
+
+How it works:
+
+- **Holding the scanner open.** The Epson driver (`EPSON Scanner 2`) only runs while some app holds an ImageCaptureCore session, so ScanButton keeps one open. For each scan it closes the session, runs `scan.sh`, then reopens it.
+- **Catching the press.** The driver catches the press and sends an Apple Event (`'EPsc'/'OPtw'`) to bundle ID `com.epson.EventManager`. ScanButton claims that bundle ID, but macOS privacy controls (TCC) block delivery: only apps signed by Epson's team can receive it without a prompt, and the driver isn't allowed to prompt. Instead, ScanButton watches the unified log for the driver *creating* that event, which happens before TCC steps in. It's a hack, but it needs no permissions.
+- **No fighting with the hotkey.** While ScanButton is running, `scan.sh` (e.g. from the hotkey) sends it `SIGUSR1` and exits, so ScanButton runs the scan. Otherwise both would compete for the device and one would fail with "device busy".
+- **Debounce.** Presses within 3 s of each other, or during a scan, are ignored.
+
+Caveat: ScanButton takes over the `com.epson.EventManager` bundle ID. If you ever install Epson's real Event Manager, delete `~/Applications/ScanButton.app` first.
+
 ## How the trim works
 
 1. Strip the pure-white padding the feeder driver adds to make short pages Letter size (`-define trim:edges=south`, zero fuzz).
@@ -76,5 +99,5 @@ The ES-60W driver has no brightness, contrast or gamma setting. Through ImageCap
 
 - **Single-sided.** The ES-60W only scans the side facing the sensor, so feed the drawing side the right way up.
 - **No deskew.** Slightly skewed paper leaves a hairline of backing on one edge. Use `SHAVE` for now; Vision-based deskew is planned for the Swift app.
-- **Hardware button doesn't work.** A probe that opened an ImageCaptureCore session got no `didReceiveButtonPress` from the ES-60W, only empty status events. Use the keyboard shortcut instead.
+- **The button relies on log scraping.** ImageCaptureCore never calls `didReceiveButtonPress` for the ES-60W, and the driver's Apple Event is blocked by TCC, so ScanButton watches the system log instead. A macOS or driver update that changes that log line will break it; the hotkey still works if that happens.
 - **"Device busy" (imagecapture error -47).** Another app (Image Capture, Epson software) has the scanner open. Quit it and retry.

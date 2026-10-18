@@ -47,6 +47,10 @@ scan() {
 if (( $# )); then
   [[ -f $1 ]] || die "no such file: $1"
   raw=$1
+elif [[ -z ${SCANBUTTON:-} ]] && pkill -USR1 -x ScanButton; then
+  # ScanButton.app holds the scanner session; let it run this scan for us.
+  print "scan: handed off to ScanButton"
+  exit 0
 else
   raw=$(scan)
 fi
