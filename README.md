@@ -38,7 +38,7 @@ On failure it prints the reason, shows a macOS notification, and exits 1.
 ### One-key scanning (macOS Shortcuts)
 
 1. Open **Shortcuts** and create a new shortcut called "Scan".
-2. Add a **Run Shell Script** action. Set the shell to `zsh` and the script to the absolute path of `scan.sh`, e.g. `~/Documents/Collections/00_Projects/flatbed-scan/scan.sh`.
+2. Add a **Run Shell Script** action. Set the shell to `zsh` and the script to the absolute path of `scan.sh`, e.g. `/path/to/flatbed-scan/scan.sh`.
 3. Open the shortcut's **Details** (ⓘ) and choose **Add Keyboard Shortcut**, e.g. ⌃⌥⌘S.
 4. Run it once from Shortcuts and approve the permission prompts.
 
