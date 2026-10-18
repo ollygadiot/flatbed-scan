@@ -9,6 +9,8 @@ BLUR=4                  # blur radius before thresholding; hides dust and streak
 BACKGROUND="black"      # "black" (ES-60W feeder backing) or "white" (flatbed lid)
 SHAVE=0                 # pixels shaved off every edge first (kills scanner-edge artefacts)
 PAD=0                   # pixels of white padding added back after trimming
+BLACK_POINT="30%"       # greys this dark or darker become black (driver output never reaches black)
+GAMMA=0.55              # <1 darkens midtones (pencil), 1 = off; paper is already clipped white
 SOURCE="feeder"         # "feeder" (sheet-fed, e.g. ES-60W) or "flatbed"
 SCANNER=""              # exact scanner name; empty = first one found
 OUT_DIR="$HOME/Scans"
@@ -65,6 +67,7 @@ box=$(magick "$tmp/framed.tif" -colorspace gray "${negate[@]}" -blur "0x$BLUR" \
 [[ $box == 0x0* || $box == 1x1* ]] && die "no object found; check BACKGROUND/THRESHOLD"
 
 magick "$tmp/framed.tif" -crop "$box" +repage \
+  -level "$BLACK_POINT,100%,$GAMMA" \
   -bordercolor white -border "$PAD" -strip "$out"
 size=$(magick identify -format '%wx%h' "$out")
 

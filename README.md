@@ -47,8 +47,13 @@ On failure it prints the reason, shows a macOS notification, and exits 1.
 1. Strip the pure-white padding the feeder driver adds to make short pages Letter size (`-define trim:edges=south`, zero fuzz).
 2. Build a mask: greyscale → blur (hides dust and streaks on the backing) → threshold.
 3. Take the mask's bounding box and crop the original to it.
+4. Apply a tone curve (`-level BLACK_POINT,100%,GAMMA`).
 
 Plain `-fuzz … -trim` doesn't work on the ES-60W: its black backing has specks up to ~70% grey, which no fuzz value ignores.
+
+### Why tone is fixed in post
+
+The ES-60W driver has no brightness, contrast or gamma setting. Through ImageCaptureCore it only exposes unsharp mask, descreening, auto size detection, skip blank pages, punch-hole removal, background removal / colour dropout, and auto rotation. It also hard-clips paper to pure white (~96% of the pixels on a drawing), so the paper already acts as the white reference. The scanner's lighting is constant, so one fixed curve fits every scan, and you don't need a grey card.
 
 ## Tuning knobs (top of `scan.sh`)
 
@@ -60,6 +65,8 @@ Plain `-fuzz … -trim` doesn't work on the ES-60W: its black backing has specks
 | `BACKGROUND` | `black` | `black` for the ES-60W backing, `white` for a flatbed lid. A white object on a white lid won't trim; use a dark backing sheet. |
 | `SHAVE` | `0` | Pixels shaved off every edge before trimming (scanner-edge artefacts). |
 | `PAD` | `0` | White padding added back around the result. |
+| `BLACK_POINT` | `30%` | Greys at or below this become black. The driver's output never gets darker than ~13%, and pencil sits at 40–90%. |
+| `GAMMA` | `0.55` | Below 1 darkens midtones such as pencil. `1` turns it off. Set `BLACK_POINT=0%` and `GAMMA=1` for untouched output. |
 | `SOURCE` | `feeder` | `feeder` or `flatbed`. |
 | `SCANNER` | empty | Exact scanner name from `scanline -list`. Empty means the first one found. |
 | `OUT_DIR` | `~/Scans` | Where PNGs land. |
