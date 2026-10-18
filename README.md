@@ -47,13 +47,21 @@ On failure it prints the reason, shows a macOS notification, and exits 1.
 `ScanButton/` is a tiny background app that turns the ES-60W's hardware button into a `scan.sh` run.
 
 ```bash
-./ScanButton/build.sh     # builds ~/Applications/ScanButton.app, registers it, starts it
+./ScanButton/build.sh     # builds ~/Applications/ScanButton.app and (re)installs it as a LaunchAgent
 ```
 
-To keep it running after a reboot, add `~/Applications/ScanButton.app` under System Settings → General → Login Items. Watch what it's doing with:
+It runs as the LaunchAgent `local.scanbutton` (`~/Library/LaunchAgents/local.scanbutton.plist`), so it starts at login and launchd restarts it if it crashes. Rerun `build.sh` after changing `main.swift`.
+
+Watch what it's doing:
 
 ```bash
 log stream --predicate 'subsystem == "local.scanbutton"'
+```
+
+Uninstall:
+
+```bash
+launchctl bootout gui/$(id -u)/local.scanbutton; rm ~/Library/LaunchAgents/local.scanbutton.plist; rm -rf ~/Applications/ScanButton.app
 ```
 
 How it works:
@@ -63,7 +71,7 @@ How it works:
 - **No fighting with the hotkey.** While ScanButton is running, `scan.sh` (e.g. from the hotkey) sends it `SIGUSR1` and exits, so ScanButton runs the scan. Otherwise both would compete for the device and one would fail with "device busy".
 - **Debounce.** Presses within 3 s of each other, or during a scan, are ignored.
 
-Caveat: ScanButton takes over the `com.epson.EventManager` bundle ID. If you ever install Epson's real Event Manager, delete `~/Applications/ScanButton.app` first.
+Caveat: ScanButton takes over the `com.epson.EventManager` bundle ID. If you ever install Epson's real Event Manager, uninstall ScanButton first.
 
 ## How the trim works
 

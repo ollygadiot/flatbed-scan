@@ -43,6 +43,7 @@ final class Receiver: NSObject, NSApplicationDelegate, ICDeviceBrowserDelegate, 
     }
 
     func watchDriverLog() {
+        killOrphanedWatchers()
         let p = Process()
         p.executableURL = URL(fileURLWithPath: "/usr/bin/log")
         p.arguments = ["stream", "--level", "debug", "--style", "compact", "--predicate",
@@ -63,6 +64,15 @@ final class Receiver: NSObject, NSApplicationDelegate, ICDeviceBrowserDelegate, 
             DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in self?.watchDriverLog() }
         }
         do { try p.run() } catch { fatalError("cannot start log stream: \(error)") }
+    }
+
+    // A crashed instance leaves its `log stream` child reparented to launchd (PID 1).
+    func killOrphanedWatchers() {
+        let p = Process()
+        p.executableURL = URL(fileURLWithPath: "/usr/bin/pkill")
+        p.arguments = ["-P", "1", "-f", "process == .EPSON Scanner 2. AND eventMessage"]
+        try? p.run()
+        p.waitUntilExit()
     }
 
     // scan.sh sends SIGUSR1 when we hold the scanner, so the hotkey still works.
