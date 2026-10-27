@@ -24,9 +24,10 @@ raw() {
     "$file"
 }
 
-# expect <name> <file> <w> <h> [warn]: output within 4 px of w×h, sheet up to every edge.
+# expect <name> <file> <w> <h> [clipped-…]: output within 4 px of w×h, sheet up to every
+# edge, and the filename flags exactly the clipped edges (no flag when none are).
 expect() {
-  local name=$1 file=$2 w=$3 h=$4 warn=${5:-}
+  local name=$1 file=$2 w=$3 h=$4 clipped=${5:-}
   local log="$tmp/$name.log" out
   "$root/scan.sh" "$file" >"$log" 2>&1 || { print "FAIL $name: scan.sh failed: $(cat $log)"; (( ++failures )); return; }
   out=$(ls -t "$OUT_DIR"/*.png | head -1)
@@ -42,8 +43,11 @@ expect() {
     mean=$(magick "$out" -crop "$strip" -colorspace gray -format '%[fx:mean]' info:)
     (( mean > 0.9 )) || problems+=("backing at edge $strip (mean $mean)")
   done
-  if [[ -n $warn ]]; then
+  if [[ -n $clipped ]]; then
     grep -q "touches the scan edge" "$log" || problems+=("no edge warning")
+    [[ ${out:t} == *-$clipped.png ]] || problems+=("filename ${out:t}, want …-$clipped.png")
+  else
+    [[ ${out:t} != *clipped* ]] || problems+=("filename ${out:t} flags a clip that isn't there")
   fi
   rm -f "$out"
   if (( ${#problems} )); then print "FAIL $name: ${(j:; :)problems}"; (( ++failures ))
@@ -55,7 +59,9 @@ raw "$tmp/a6-ccw.tif"       2480 3508 -0.8 2600 1950; expect a6-portrait-skewed-
 raw "$tmp/a6-land.tif"      3508 2480  0   1900 1400; expect a6-landscape-straight   "$tmp/a6-land.tif"      3508 2480
 raw "$tmp/a5.tif"           3496 4960  0.6 2200 2600; expect a5-portrait-skewed      "$tmp/a5.tif"           3496 4960
 raw "$tmp/receipt.tif"      1890 5000 -1.5 1100 2600; expect receipt-long-skewed     "$tmp/receipt.tif"      1890 5000
-# Sheet hanging 100 px off the left of the scan window: keep what was scanned, and warn.
-raw "$tmp/clipped.tif"      2480 3508  0   1140 1900; expect clipped-left-warns      "$tmp/clipped.tif"      2380 3508 warn
+# Sheets hanging off the scan window: keep what was scanned, warn, and say so in the name.
+raw "$tmp/clipped.tif"      2480 3508  0   1140 1900; expect clipped-left            "$tmp/clipped.tif"      2380 3508 clipped-left
+# Leading edge missed (what the ES-60W actually does): card starts 70 px above row 0.
+raw "$tmp/clipped-top.tif"  3508 2480  0   2000 1170; expect clipped-top             "$tmp/clipped-top.tif"  3508 2410 clipped-top
 
 (( failures == 0 )) && print "all trim tests passed" || { print "$failures failed"; exit 1; }

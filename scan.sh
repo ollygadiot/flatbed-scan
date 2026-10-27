@@ -58,8 +58,8 @@ else
 fi
 
 mkdir -p "$OUT_DIR"
-out="$OUT_DIR/scan-$(date +%Y%m%d-%H%M%S).png"
-(( KEEP_RAW )) && cp "$raw" "${out%.png}-raw.tif"
+stamp=$(date +%Y%m%d-%H%M%S)
+(( KEEP_RAW )) && cp "$raw" "$OUT_DIR/scan-$stamp-raw.tif"
 
 # The feeder driver pads short pages to Letter with pure white; strip that off the
 # bottom first (zero fuzz, so real paper with sensor noise survives).
@@ -75,12 +75,19 @@ mask_info() {
     -shave 1x1 -bordercolor black -border 1 -format "$2" info:
 }
 
-# Warn when the sheet reaches the edge of the scan window: whatever lay beyond it
-# was never scanned, so the output will be smaller than the sheet.
+# Warn when the sheet reaches the edge of the scan window, and name those edges in the
+# filename: whatever lay beyond them was never scanned, so the output is smaller than
+# the sheet. (The ES-60W sometimes starts imaging a few mm after the leading edge.)
 read fw fh bw bh bx by <<<"$(mask_info "$tmp/framed.tif" '%w %h %@' | tr 'x+' '  ')"
 (( bw > 1 && bh > 1 )) || die "no sheet found; check BACKGROUND/THRESHOLD"
-if (( bx <= 1 || by <= 1 || bx + bw >= fw - 1 || by + bh >= fh - 1 )); then
-  msg="sheet touches the scan edge, part of it may be missing; feed it straighter or more centred"
+clipped=()
+(( by <= 1 ))            && clipped+=(top)
+(( by + bh >= fh - 1 ))  && clipped+=(bottom)
+(( bx <= 1 ))            && clipped+=(left)
+(( bx + bw >= fw - 1 ))  && clipped+=(right)
+out="$OUT_DIR/scan-$stamp${clipped:+-clipped-${(j:-:)clipped}}.png"
+if (( ${#clipped} )); then
+  msg="sheet touches the scan edge (${(j:, :)clipped}), part of it may be missing; feed it straighter or more centred"
   print -u2 "scan: warning: $msg"
   osascript -e "display notification \"$msg\" with title \"Scan may be clipped\"" 2>/dev/null || true
 fi

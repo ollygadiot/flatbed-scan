@@ -79,7 +79,7 @@ The output is the whole sheet, straightened, at its true size. Any paper size wo
 
 1. Strip the pure-white padding the feeder driver adds to make short pages Letter size (`-define trim:edges=south`, zero fuzz).
 2. Build a mask: greyscale → blur (hides dust and streaks on the backing) → threshold.
-3. **Warn if the sheet touches the edge of the scan window.** Anything beyond it was never scanned, so the output will be smaller than the sheet. Feed it straighter or more centred.
+3. **Flag a clipped sheet.** If the sheet touches the edge of the scan window, anything beyond it was never scanned, so the output is smaller than the sheet. `scan.sh` then warns (terminal and notification) and names the edges in the file, e.g. `scan-20261027-175413-clipped-top-bottom.png`. Nothing is made up to fill the gap. If a clipped sheet was also skewed, straightening tilts the scanner's straight cut line, so a sliver of backing can remain along the clipped edge; it isn't cropped away, because that would cost scanned paper.
 4. **Straighten** the sheet: find the mask's minimum-area rectangle (`%[minimum-bounding-box:unrotate]`) and rotate the scan by that angle.
 5. Mask the straightened scan again and crop to its bounding box.
 6. Apply a tone curve (`-level BLACK_POINT,100%,GAMMA`).
@@ -115,12 +115,12 @@ The ES-60W driver has no brightness, contrast or gamma setting. Through ImageCap
 ./tests/trim_test.sh
 ```
 
-This builds synthetic ES-60W-style raw scans (Letter-sized black backing with streaks and dust, white padding, pencil-marked sheets of different sizes and skews) and checks that each output is the whole sheet, straight, at its true size, and that a sheet hanging off the scan window triggers the warning.
+This builds synthetic ES-60W-style raw scans (Letter-sized black backing with streaks and dust, white padding, pencil-marked sheets of different sizes and skews) and checks that each output is the whole sheet, straight, at its true size, and that a sheet hanging off the scan window triggers the warning and gets the right `-clipped-…` filename.
 
 ## Known limitations
 
 - **Single-sided.** The ES-60W only scans the side facing the sensor, so feed the drawing side the right way up.
-- **The leading edge can be lost.** The ES-60W grabs the sheet as soon as you insert it, and sometimes starts imaging a few mm after the sheet's leading edge (about 3 mm on an A6 card on 27 Oct). That part was never scanned, so no trim can bring it back. `scan.sh` warns ("sheet touches the scan edge") whenever this happens.
+- **The leading edge can be lost.** The ES-60W grabs the sheet as soon as you insert it, and sometimes starts imaging a few mm after the sheet's leading edge (about 3 mm on an A6 card on 27 Oct). That part was never scanned, so no trim can bring it back. `scan.sh` warns and adds `-clipped-<edges>` to the filename whenever this happens.
 - **Upside-down sheets stay upside down.** Straightening fixes skew only, not sheets fed in the wrong way round.
 - **The button relies on log scraping.** ImageCaptureCore never calls `didReceiveButtonPress` for the ES-60W, and the driver's Apple Event is blocked by TCC, so ScanButton watches the system log instead. A macOS or driver update that changes that log line will break it; the hotkey still works if that happens.
 - **"Device busy" (imagecapture error -47).** Another app (Image Capture, Epson software) has the scanner open. Quit it and retry.
