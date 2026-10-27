@@ -75,10 +75,14 @@ Caveat: ScanButton takes over the `com.epson.EventManager` bundle ID. If you eve
 
 ## How the trim works
 
+The output is the whole sheet, straightened, at its true size. Any paper size works: A6 cards, receipts, A5.
+
 1. Strip the pure-white padding the feeder driver adds to make short pages Letter size (`-define trim:edges=south`, zero fuzz).
 2. Build a mask: greyscale → blur (hides dust and streaks on the backing) → threshold.
-3. Take the mask's bounding box and crop the original to it.
-4. Apply a tone curve (`-level BLACK_POINT,100%,GAMMA`).
+3. **Warn if the sheet touches the edge of the scan window.** Anything beyond it was never scanned, so the output will be smaller than the sheet. Feed it straighter or more centred.
+4. **Straighten** the sheet: find the mask's minimum-area rectangle (`%[minimum-bounding-box:unrotate]`) and rotate the scan by that angle.
+5. Mask the straightened scan again and crop to its bounding box.
+6. Apply a tone curve (`-level BLACK_POINT,100%,GAMMA`).
 
 Plain `-fuzz … -trim` doesn't work on the ES-60W: its black backing has specks up to ~70% grey, which no fuzz value ignores.
 
@@ -95,17 +99,26 @@ The ES-60W driver has no brightness, contrast or gamma setting. Through ImageCap
 | `BLUR` | `4` | Blur radius before thresholding. Raise it if dust specks enlarge the crop. |
 | `BACKGROUND` | `black` | `black` for the ES-60W backing, `white` for a flatbed lid. A white object on a white lid won't trim; use a dark backing sheet. |
 | `SHAVE` | `0` | Pixels shaved off every edge before trimming (scanner-edge artefacts). |
+| `DESKEW_MIN` | `0.05` | Skews smaller than this (in degrees) are left alone rather than resampled. |
 | `PAD` | `0` | White padding added back around the result. |
 | `BLACK_POINT` | `0%` | Greys at or below this become black. The driver's output never gets darker than ~13%, so raise it (e.g. `30%`) for punchier lines. |
 | `GAMMA` | `0.7` | Below 1 darkens midtones such as pencil. `1` turns it off. Set `BLACK_POINT=0%` and `GAMMA=1` for untouched output. |
 | `SOURCE` | `feeder` | `feeder` or `flatbed`. |
 | `SCANNER` | empty | Exact scanner name from `scanline -list`. Empty means the first one found. |
-| `OUT_DIR` | `~/Scans` | Where PNGs land. |
-| `REVEAL` | `1` | Reveal the result in Finder. |
+| `OUT_DIR` | `~/Scans` | Where PNGs land. Can also be set from the environment. |
+| `REVEAL` | `1` | Reveal the result in Finder. Can also be set from the environment. |
+
+## Tests
+
+```bash
+./tests/trim_test.sh
+```
+
+This builds synthetic ES-60W-style raw scans (Letter-sized black backing with streaks and dust, white padding, pencil-marked sheets of different sizes and skews) and checks that each output is the whole sheet, straight, at its true size, and that a sheet hanging off the scan window triggers the warning.
 
 ## Known limitations
 
 - **Single-sided.** The ES-60W only scans the side facing the sensor, so feed the drawing side the right way up.
-- **No deskew.** Slightly skewed paper leaves a hairline of backing on one edge. Use `SHAVE` for now; Vision-based deskew is planned for the Swift app.
+- **Upside-down sheets stay upside down.** Straightening fixes skew only, not sheets fed in the wrong way round.
 - **The button relies on log scraping.** ImageCaptureCore never calls `didReceiveButtonPress` for the ES-60W, and the driver's Apple Event is blocked by TCC, so ScanButton watches the system log instead. A macOS or driver update that changes that log line will break it; the hotkey still works if that happens.
 - **"Device busy" (imagecapture error -47).** Another app (Image Capture, Epson software) has the scanner open. Quit it and retry.
