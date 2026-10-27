@@ -78,7 +78,9 @@ mask_info() {
 read fw fh bw bh bx by <<<"$(mask_info "$tmp/framed.tif" '%w %h %@' | tr 'x+' '  ')"
 (( bw > 1 && bh > 1 )) || die "no sheet found; check BACKGROUND/THRESHOLD"
 if (( bx <= 1 || by <= 1 || bx + bw >= fw - 1 || by + bh >= fh - 1 )); then
-  print -u2 "scan: warning: sheet touches the scan edge, part of it may be missing; feed it straighter or more centred"
+  msg="sheet touches the scan edge, part of it may be missing; feed it straighter or more centred"
+  print -u2 "scan: warning: $msg"
+  osascript -e "display notification \"$msg\" with title \"Scan may be clipped\"" 2>/dev/null || true
 fi
 
 # Straighten: rotate by the angle that makes the sheet's minimum-area rectangle upright.
