@@ -16,6 +16,7 @@ SOURCE="feeder"         # "feeder" (sheet-fed, e.g. ES-60W) or "flatbed"
 SCANNER=""              # exact scanner name; empty = first one found
 OUT_DIR="${OUT_DIR:-$HOME/Scans}"
 REVEAL=${REVEAL:-1}     # 1 = reveal the result in Finder
+KEEP_RAW=${KEEP_RAW:-0} # 1 = also save the untouched scan as scan-…-raw.tif (for debugging the trim)
 # ---------------------------------------------------------------------------
 
 # Shortcuts/launchd run with a bare PATH.
@@ -58,6 +59,7 @@ fi
 
 mkdir -p "$OUT_DIR"
 out="$OUT_DIR/scan-$(date +%Y%m%d-%H%M%S).png"
+(( KEEP_RAW )) && cp "$raw" "${out%.png}-raw.tif"
 
 # The feeder driver pads short pages to Letter with pure white; strip that off the
 # bottom first (zero fuzz, so real paper with sensor noise survives).

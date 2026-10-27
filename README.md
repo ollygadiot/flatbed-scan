@@ -107,6 +107,7 @@ The ES-60W driver has no brightness, contrast or gamma setting. Through ImageCap
 | `SCANNER` | empty | Exact scanner name from `scanline -list`. Empty means the first one found. |
 | `OUT_DIR` | `~/Scans` | Where PNGs land. Can also be set from the environment. |
 | `REVEAL` | `1` | Reveal the result in Finder. Can also be set from the environment. |
+| `KEEP_RAW` | `0` | `1` also saves the untouched scan as `scan-…-raw.tif` next to the PNG, for debugging the trim. Can also be set from the environment. |
 
 ## Tests
 
@@ -119,6 +120,7 @@ This builds synthetic ES-60W-style raw scans (Letter-sized black backing with st
 ## Known limitations
 
 - **Single-sided.** The ES-60W only scans the side facing the sensor, so feed the drawing side the right way up.
+- **The leading edge can be lost.** The ES-60W grabs the sheet as soon as you insert it, and sometimes starts imaging a few mm after the sheet's leading edge (about 3 mm on an A6 card on 27 Oct). That part was never scanned, so no trim can bring it back. `scan.sh` warns ("sheet touches the scan edge") whenever this happens.
 - **Upside-down sheets stay upside down.** Straightening fixes skew only, not sheets fed in the wrong way round.
 - **The button relies on log scraping.** ImageCaptureCore never calls `didReceiveButtonPress` for the ES-60W, and the driver's Apple Event is blocked by TCC, so ScanButton watches the system log instead. A macOS or driver update that changes that log line will break it; the hotkey still works if that happens.
 - **"Device busy" (imagecapture error -47).** Another app (Image Capture, Epson software) has the scanner open. Quit it and retry.
